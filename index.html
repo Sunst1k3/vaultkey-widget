@@ -6,14 +6,13 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#000000">
-    <title>VaultKeyVPN — Управление</title>
+    <title>VaultKeyVPN</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
@@ -21,12 +20,10 @@
             padding: 20px;
             color: #fff;
         }
-
         .container {
             max-width: 400px;
             margin: 0 auto;
         }
-
         .card {
             background: rgba(255,255,255,0.08);
             backdrop-filter: blur(10px);
@@ -35,7 +32,6 @@
             margin-bottom: 16px;
             border: 1px solid rgba(255,255,255,0.1);
         }
-
         .card-title {
             font-size: 14px;
             text-transform: uppercase;
@@ -43,7 +39,6 @@
             color: #888;
             margin-bottom: 12px;
         }
-
         .server-status {
             display: flex;
             align-items: center;
@@ -57,10 +52,6 @@
             background: #4CAF50;
             box-shadow: 0 0 8px #4CAF50;
         }
-        .status-led.offline {
-            background: #f44336;
-            box-shadow: 0 0 8px #f44336;
-        }
         .server-name {
             font-weight: 600;
             font-size: 18px;
@@ -70,7 +61,6 @@
             color: #aaa;
             margin-left: auto;
         }
-
         .key-status {
             display: inline-block;
             padding: 4px 12px;
@@ -87,10 +77,6 @@
             background: rgba(244,67,54,0.2);
             color: #f44336;
         }
-        .key-status.limited {
-            background: rgba(255,152,0,0.2);
-            color: #FF9800;
-        }
         .info-row {
             display: flex;
             justify-content: space-between;
@@ -103,7 +89,6 @@
         .info-value {
             font-weight: 500;
         }
-
         .traffic-bar {
             background: rgba(255,255,255,0.1);
             border-radius: 10px;
@@ -116,9 +101,7 @@
             width: 0%;
             height: 100%;
             border-radius: 10px;
-            transition: width 0.3s;
         }
-
         .vpn-buttons {
             display: flex;
             gap: 12px;
@@ -132,7 +115,6 @@
             font-size: 16px;
             border: none;
             cursor: pointer;
-            transition: all 0.2s;
         }
         .btn-on {
             background: #4CAF50;
@@ -142,7 +124,6 @@
             background: rgba(244,67,54,0.8);
             color: white;
         }
-
         .utility-selector {
             display: flex;
             gap: 8px;
@@ -155,13 +136,11 @@
             border-radius: 30px;
             font-size: 14px;
             cursor: pointer;
-            transition: all 0.2s;
         }
         .util-btn.active {
             background: #0066CC;
             border-color: #0066CC;
         }
-
         .email-form {
             text-align: center;
             padding: 40px 20px;
@@ -190,17 +169,14 @@
             font-size: 16px;
             cursor: pointer;
         }
-
         .loading {
             text-align: center;
             padding: 40px;
             color: #888;
         }
-
         .hidden {
             display: none;
         }
-
         .footer {
             text-align: center;
             font-size: 12px;
@@ -215,7 +191,7 @@
 
         <div id="emailForm" class="card email-form">
             <h2>🔐 VaultKeyVPN</h2>
-            <p>Введите ваш логин из панели 3x-ui</p>
+            <p>Введите ваш логин</p>
             <input type="text" id="loginInput" class="email-input" placeholder="SotnikovIPHONE">
             <button id="saveBtn" class="submit-btn">Продолжить</button>
         </div>
@@ -224,9 +200,9 @@
             <div class="card">
                 <div class="card-title">📍 СТАТУС СЕРВЕРА</div>
                 <div class="server-status">
-                    <div id="serverLed" class="status-led"></div>
+                    <div class="status-led"></div>
                     <span class="server-name">🇳🇱 Нидерланды</span>
-                    <span id="serverLoad" class="server-load">—</span>
+                    <span class="server-load">Нагрузка: 32%</span>
                 </div>
             </div>
 
@@ -271,12 +247,14 @@
 
             <button id="resetBtn" style="background: none; border: none; color: #555; font-size: 12px; margin-top: 8px;">🔄 Сменить логин</button>
         </div>
-        <div class="footer">VaultKeyVPN — ваш надёжный VPN</div>
+        <div class="footer">VaultKeyVPN</div>
     </div>
 
     <script>
-        const API_BASE = 'https://vaultkeyvpn.duckdns.org:8080/vaultkey-api.php';
+        // ========== НАСТРОЙКИ ==========
+        const API_BASE = 'http://144.31.227.188:8888/vaultkey-api.php';
 
+        // ========== УТИЛИТЫ ==========
         const UTILS = {
             shadowrocket: {
                 name: 'Shadowrocket',
@@ -298,149 +276,160 @@
             }
         };
 
-        let currentLogin = null;
         let currentUtil = 'shadowrocket';
 
-        // Загрузка данных
-        async function fetchKeyInfo(login) {
-            try {
-                const response = await fetch(`${API_BASE}?login=${encodeURIComponent(login)}`);
-                return await response.json();
-            } catch (error) {
-                return { success: false, error: 'Ошибка подключения' };
-            }
+        // ========== ЗАПРОС К API ==========
+        async function checkKey(login) {
+            const url = API_BASE + '?login=' + encodeURIComponent(login);
+            const response = await fetch(url);
+            const data = await response.json();
+            return data;
         }
 
-        // Отображение данных
-        function displayKeyInfo(data) {
-            if (!data.success) {
-                document.getElementById('keyStatus').textContent = '❌ КЛЮЧ НЕ НАЙДЕН';
-                document.getElementById('keyStatus').className = 'key-status expired';
+        // ========== ОТОБРАЖЕНИЕ ==========
+        function displayData(data) {
+            const statusEl = document.getElementById('keyStatus');
+            const loginEl = document.getElementById('keyLogin');
+            const expiryEl = document.getElementById('keyExpiry');
+            const usedEl = document.getElementById('keyUsed');
+            const remainingEl = document.getElementById('keyRemaining');
+            const trafficFill = document.getElementById('trafficFill');
+
+            if (data.success === false) {
+                statusEl.textContent = '❌ КЛЮЧ НЕ НАЙДЕН';
+                statusEl.className = 'key-status expired';
+                loginEl.textContent = data.login || '?';
                 return;
             }
 
-            document.getElementById('keyLogin').textContent = data.login;
-            document.getElementById('keyExpiry').textContent = data.expiry_date;
+            // Логин
+            loginEl.textContent = data.login;
 
+            // Срок действия
+            expiryEl.textContent = data.expiry_date;
+
+            // Трафик в ГБ
             const usedGB = (data.used_traffic / (1024 * 1024 * 1024)).toFixed(1);
             
             if (data.total_traffic > 0) {
                 const totalGB = (data.total_traffic / (1024 * 1024 * 1024)).toFixed(1);
                 const remainingGB = (data.remaining_traffic / (1024 * 1024 * 1024)).toFixed(1);
-                document.getElementById('keyUsed').textContent = `${usedGB} GB / ${totalGB} GB`;
-                document.getElementById('keyRemaining').textContent = `${remainingGB} GB`;
+                usedEl.textContent = `${usedGB} GB / ${totalGB} GB`;
+                remainingEl.textContent = `${remainingGB} GB`;
                 const percent = (data.used_traffic / data.total_traffic) * 100;
-                document.getElementById('trafficFill').style.width = `${Math.min(percent, 100)}%`;
+                trafficFill.style.width = Math.min(percent, 100) + '%';
             } else {
-                document.getElementById('keyUsed').textContent = `${usedGB} GB (Безлимит)`;
-                document.getElementById('keyRemaining').textContent = '∞';
-                document.getElementById('trafficFill').style.width = '0%';
+                usedEl.textContent = `${usedGB} GB (Безлимит)`;
+                remainingEl.textContent = '∞';
+                trafficFill.style.width = '0%';
             }
 
+            // Статус
             if (data.status === 'active') {
-                document.getElementById('keyStatus').textContent = '✅ АКТИВЕН';
-                document.getElementById('keyStatus').className = 'key-status active';
+                statusEl.textContent = '✅ АКТИВЕН';
+                statusEl.className = 'key-status active';
             } else if (data.status === 'expired') {
-                document.getElementById('keyStatus').textContent = '⛔ ИСТЕК';
-                document.getElementById('keyStatus').className = 'key-status expired';
+                statusEl.textContent = '⛔ ИСТЕК';
+                statusEl.className = 'key-status expired';
             } else {
-                document.getElementById('keyStatus').textContent = '⚠️ ОГРАНИЧЕН';
-                document.getElementById('keyStatus').className = 'key-status limited';
+                statusEl.textContent = '⚠️ ОГРАНИЧЕН';
+                statusEl.className = 'key-status limited';
             }
         }
 
-        // Статус сервера (демо)
-        function updateServerStatus() {
-            document.getElementById('serverLed').classList.remove('offline');
-            document.getElementById('serverLoad').textContent = 'Нагрузка: 32%';
-        }
-
-        // Управление VPN
-        function executeVpnCommand(action) {
-            const util = UTILS[currentUtil];
-            window.location.href = action === 'on' ? util.urlOn : util.urlOff;
-            setTimeout(() => {
-                alert(`Не удалось открыть ${util.name}. Убедитесь, что приложение установлено.`);
-            }, 500);
-        }
-
-        // Инициализация
-        async function initWidget(login) {
+        // ========== ЗАПУСК ==========
+        async function start(login) {
             document.getElementById('loading').classList.remove('hidden');
             document.getElementById('emailForm').classList.add('hidden');
             
-            const data = await fetchKeyInfo(login);
-            displayKeyInfo(data);
-            updateServerStatus();
+            const data = await checkKey(login);
+            displayData(data);
             
             document.getElementById('loading').classList.add('hidden');
             document.getElementById('widget').classList.remove('hidden');
         }
 
-        // Сохранение логина
+        // ========== СОХРАНЕНИЕ ЛОГИНА ==========
         function saveLogin(login) {
             localStorage.setItem('vaultkey_login', login);
-            currentLogin = login;
         }
 
-        function getStoredLogin() {
+        function getSavedLogin() {
             return localStorage.getItem('vaultkey_login');
         }
 
+        // ========== УПРАВЛЕНИЕ VPN ==========
+        function executeVpn(action) {
+            const util = UTILS[currentUtil];
+            const url = action === 'on' ? util.urlOn : util.urlOff;
+            window.location.href = url;
+            setTimeout(() => {
+                alert('Не удалось открыть ' + util.name + '. Проверьте, что приложение установлено.');
+            }, 500);
+        }
+
+        // ========== СОХРАНЕНИЕ УТИЛИТЫ ==========
         function saveUtil(util) {
             localStorage.setItem('vaultkey_util', util);
             currentUtil = util;
             document.querySelectorAll('.util-btn').forEach(btn => {
-                if (btn.dataset.util === util) btn.classList.add('active');
-                else btn.classList.remove('active');
+                if (btn.dataset.util === util) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
             });
         }
 
-        function getStoredUtil() {
-            const stored = localStorage.getItem('vaultkey_util');
-            return stored && UTILS[stored] ? stored : 'shadowrocket';
+        function getSavedUtil() {
+            const saved = localStorage.getItem('vaultkey_util');
+            if (saved && UTILS[saved]) return saved;
+            return 'shadowrocket';
         }
 
-        // Настройка обработчиков
-        function setup() {
+        // ========== ИНИЦИАЛИЗАЦИЯ ==========
+        function init() {
+            // Обработчики формы
             document.getElementById('saveBtn').onclick = () => {
                 const login = document.getElementById('loginInput').value.trim();
                 if (login) {
                     saveLogin(login);
-                    initWidget(login);
+                    start(login);
                 } else {
                     alert('Введите логин');
                 }
             };
 
+            // Смена логина
             document.getElementById('resetBtn').onclick = () => {
                 localStorage.removeItem('vaultkey_login');
                 location.reload();
             };
 
-            document.getElementById('vpnOnBtn').onclick = () => executeVpnCommand('on');
-            document.getElementById('vpnOffBtn').onclick = () => executeVpnCommand('off');
+            // Кнопки VPN
+            document.getElementById('vpnOnBtn').onclick = () => executeVpn('on');
+            document.getElementById('vpnOffBtn').onclick = () => executeVpn('off');
 
+            // Выбор утилиты
             document.querySelectorAll('.util-btn').forEach(btn => {
                 btn.onclick = () => saveUtil(btn.dataset.util);
             });
 
-            const helpEl = document.getElementById('utilHelp');
-            helpEl.innerHTML = `⚠️ Для работы с утилитой она должна быть установлена. <a href="${UTILS[currentUtil].downloadUrl}" target="_blank" style="color:#0066CC;">Скачать</a>`;
+            // Подсказка
+            document.getElementById('utilHelp').innerHTML = '⚠️ Утилита должна быть установлена. <a href="' + UTILS[currentUtil].downloadUrl + '" target="_blank" style="color:#0066CC;">Скачать</a>';
+
+            // Загрузка сохранённого логина
+            const savedLogin = getSavedLogin();
+            if (savedLogin) {
+                start(savedLogin);
+            }
         }
 
-        // Старт
-        setup();
-        currentUtil = getStoredUtil();
-        document.querySelectorAll('.util-btn').forEach(btn => {
-            if (btn.dataset.util === currentUtil) btn.classList.add('active');
-        });
-
-        const savedLogin = getStoredLogin();
-        if (savedLogin) {
-            document.getElementById('emailForm').classList.add('hidden');
-            initWidget(savedLogin);
-        }
+        // Загружаем сохранённую утилиту
+        currentUtil = getSavedUtil();
+        
+        // Запускаем
+        init();
     </script>
 </body>
 </html>
