@@ -557,8 +557,8 @@
             // Сохранение email
             saveEmailBtn.addEventListener('click', () => {
                 const email = emailInput.value.trim();
-                if (!email || !email.includes('@')) {
-                    alert('Введите корректный email');
+                if (!email || email.trim() === '') {
+                    alert('Введите ваш логин или email');
                     return;
                 }
                 initWidget(email);
