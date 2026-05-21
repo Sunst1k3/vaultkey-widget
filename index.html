@@ -4,13 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <!-- !!! ВОТ ЭТОТ ТЕГ ВАЖЕН !!! -->
+    <meta http-equiv="Content-Security-Policy" content="connect-src http://144.31.227.188:8888 https:;">
     <title>VaultKeyVPN</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
@@ -18,10 +16,7 @@
             padding: 20px;
             color: #fff;
         }
-        .container {
-            max-width: 400px;
-            margin: 0 auto;
-        }
+        .container { max-width: 400px; margin: 0 auto; }
         .card {
             background: rgba(255,255,255,0.08);
             backdrop-filter: blur(10px);
@@ -37,11 +32,7 @@
             color: #888;
             margin-bottom: 12px;
         }
-        .server-status {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
+        .server-status { display: flex; align-items: center; gap: 12px; }
         .status-led {
             width: 12px;
             height: 12px;
@@ -55,12 +46,8 @@
             padding: 10px 0;
             border-bottom: 1px solid rgba(255,255,255,0.05);
         }
-        .info-label {
-            color: #888;
-        }
-        .info-value {
-            font-weight: 500;
-        }
+        .info-label { color: #888; }
+        .info-value { font-weight: 500; }
         .traffic-bar {
             background: rgba(255,255,255,0.1);
             border-radius: 10px;
@@ -74,11 +61,7 @@
             height: 100%;
             border-radius: 10px;
         }
-        .vpn-buttons {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 16px;
-        }
+        .vpn-buttons { display: flex; gap: 12px; margin-bottom: 16px; }
         .btn {
             flex: 1;
             padding: 14px;
@@ -88,19 +71,9 @@
             border: none;
             cursor: pointer;
         }
-        .btn-on {
-            background: #4CAF50;
-            color: white;
-        }
-        .btn-off {
-            background: rgba(244,67,54,0.8);
-            color: white;
-        }
-        .utility-selector {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
+        .btn-on { background: #4CAF50; color: white; }
+        .btn-off { background: rgba(244,67,54,0.8); color: white; }
+        .utility-selector { display: flex; gap: 8px; flex-wrap: wrap; }
         .util-btn {
             background: rgba(255,255,255,0.1);
             border: 1px solid rgba(255,255,255,0.2);
@@ -109,14 +82,8 @@
             font-size: 14px;
             cursor: pointer;
         }
-        .util-btn.active {
-            background: #0066CC;
-            border-color: #0066CC;
-        }
-        .login-form {
-            text-align: center;
-            padding: 40px 20px;
-        }
+        .util-btn.active { background: #0066CC; border-color: #0066CC; }
+        .login-form { text-align: center; padding: 40px 20px; }
         .login-input {
             width: 100%;
             padding: 14px;
@@ -127,9 +94,7 @@
             font-size: 16px;
             margin-bottom: 16px;
         }
-        .login-input::placeholder {
-            color: #888;
-        }
+        .login-input::placeholder { color: #888; }
         .login-btn {
             background: #0066CC;
             width: 100%;
@@ -141,14 +106,8 @@
             font-size: 16px;
             cursor: pointer;
         }
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #888;
-        }
-        .hidden {
-            display: none;
-        }
+        .loading { text-align: center; padding: 40px; color: #888; }
+        .hidden { display: none; }
         .key-status {
             display: inline-block;
             padding: 4px 12px;
@@ -157,28 +116,10 @@
             font-weight: 600;
             margin-bottom: 16px;
         }
-        .key-status.active {
-            background: rgba(76,175,80,0.2);
-            color: #4CAF50;
-        }
-        .key-status.expired {
-            background: rgba(244,67,54,0.2);
-            color: #f44336;
-        }
-        .reset-btn {
-            background: none;
-            border: none;
-            color: #555;
-            font-size: 12px;
-            margin-top: 8px;
-            cursor: pointer;
-        }
-        .footer {
-            text-align: center;
-            font-size: 12px;
-            color: #555;
-            margin-top: 20px;
-        }
+        .key-status.active { background: rgba(76,175,80,0.2); color: #4CAF50; }
+        .key-status.expired { background: rgba(244,67,54,0.2); color: #f44336; }
+        .reset-btn { background: none; border: none; color: #555; font-size: 12px; margin-top: 8px; cursor: pointer; }
+        .footer { text-align: center; font-size: 12px; color: #555; margin-top: 20px; }
     </style>
 </head>
 <body>
@@ -271,14 +212,12 @@
 
         let currentUtil = 'shadowrocket';
 
-        // ========== ПОЛУЧЕНИЕ ДАННЫХ ==========
         async function getKeyInfo(login) {
             const response = await fetch(API_URL + '?login=' + encodeURIComponent(login));
             const data = await response.json();
             return data;
         }
 
-        // ========== ПОКАЗ ДАННЫХ ==========
         function showKeyInfo(data) {
             if (data.success === false) {
                 document.getElementById('keyStatus').textContent = '❌ КЛЮЧ НЕ НАЙДЕН';
@@ -316,20 +255,24 @@
             }
         }
 
-        // ========== ЗАГРУЗКА ==========
         async function load(login) {
             document.getElementById('loading').classList.remove('hidden');
             document.getElementById('loginScreen').classList.add('hidden');
             document.getElementById('widgetScreen').classList.add('hidden');
             
-            const data = await getKeyInfo(login);
-            showKeyInfo(data);
+            try {
+                const data = await getKeyInfo(login);
+                showKeyInfo(data);
+            } catch (error) {
+                console.error(error);
+                document.getElementById('keyStatus').textContent = '❌ ОШИБКА СЕТИ';
+                document.getElementById('keyStatus').className = 'key-status expired';
+            }
             
             document.getElementById('loading').classList.add('hidden');
             document.getElementById('widgetScreen').classList.remove('hidden');
         }
 
-        // ========== СОХРАНЕНИЕ ==========
         function saveLogin(login) {
             localStorage.setItem('vaultkey_login', login);
         }
@@ -338,14 +281,12 @@
             return localStorage.getItem('vaultkey_login');
         }
 
-        // ========== VPN ==========
         function vpn(action) {
             const util = UTILS[currentUtil];
             const url = action === 'on' ? util.urlOn : util.urlOff;
             window.location.href = url;
         }
 
-        // ========== УТИЛИТА ==========
         function setUtil(util) {
             currentUtil = util;
             localStorage.setItem('vaultkey_util', util);
@@ -364,7 +305,6 @@
             return 'shadowrocket';
         }
 
-        // ========== ЗАПУСК ==========
         function init() {
             currentUtil = getSavedUtil();
             document.querySelectorAll('.util-btn').forEach(btn => {
