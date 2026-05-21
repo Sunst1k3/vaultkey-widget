@@ -43,7 +43,6 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            margin-bottom: 16px;
         }
         .status-led {
             width: 12px;
@@ -183,6 +182,14 @@
             color: #555;
             margin-top: 20px;
         }
+        .error {
+            color: #ff6b6b;
+            text-align: center;
+            padding: 20px;
+        }
+        button {
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -200,9 +207,9 @@
             <div class="card">
                 <div class="card-title">📍 СТАТУС СЕРВЕРА</div>
                 <div class="server-status">
-                    <div class="status-led"></div>
+                    <div id="serverLed" class="status-led"></div>
                     <span class="server-name">🇳🇱 Нидерланды</span>
-                    <span class="server-load">Нагрузка: 32%</span>
+                    <span id="serverLoad" class="server-load">Нагрузка: 32%</span>
                 </div>
             </div>
 
@@ -245,7 +252,7 @@
                 <p id="utilHelp" style="font-size: 11px; color: #555; margin-top: 12px;"></p>
             </div>
 
-            <button id="resetBtn" style="background: none; border: none; color: #555; font-size: 12px; margin-top: 8px;">🔄 Сменить логин</button>
+            <button id="resetBtn" style="background: none; border: none; color: #555; font-size: 12px; margin-top: 8px; cursor: pointer;">🔄 Сменить логин</button>
         </div>
         <div class="footer">VaultKeyVPN</div>
     </div>
@@ -254,7 +261,6 @@
         // ========== НАСТРОЙКИ ==========
         const API_BASE = 'http://144.31.227.188:8888/vaultkey-api.php';
 
-        // ========== УТИЛИТЫ ==========
         const UTILS = {
             shadowrocket: {
                 name: 'Shadowrocket',
@@ -279,15 +285,20 @@
         let currentUtil = 'shadowrocket';
 
         // ========== ЗАПРОС К API ==========
-        async function checkKey(login) {
-            const url = API_BASE + '?login=' + encodeURIComponent(login);
-            const response = await fetch(url);
-            const data = await response.json();
-            return data;
+        async function fetchKeyInfo(login) {
+            try {
+                const url = `${API_BASE}?login=${encodeURIComponent(login)}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error('API error:', error);
+                return { success: false, error: error.message };
+            }
         }
 
-        // ========== ОТОБРАЖЕНИЕ ==========
-        function displayData(data) {
+        // ========== ОТОБРАЖЕНИЕ ДАННЫХ ==========
+        function updateUI(data) {
             const statusEl = document.getElementById('keyStatus');
             const loginEl = document.getElementById('keyLogin');
             const expiryEl = document.getElementById('keyExpiry');
@@ -298,7 +309,11 @@
             if (data.success === false) {
                 statusEl.textContent = '❌ КЛЮЧ НЕ НАЙДЕН';
                 statusEl.className = 'key-status expired';
-                loginEl.textContent = data.login || '?';
+                loginEl.textContent = '—';
+                expiryEl.textContent = '—';
+                usedEl.textContent = '—';
+                remainingEl.textContent = '—';
+                trafficFill.style.width = '0%';
                 return;
             }
 
@@ -317,7 +332,7 @@
                 usedEl.textContent = `${usedGB} GB / ${totalGB} GB`;
                 remainingEl.textContent = `${remainingGB} GB`;
                 const percent = (data.used_traffic / data.total_traffic) * 100;
-                trafficFill.style.width = Math.min(percent, 100) + '%';
+                trafficFill.style.width = `${Math.min(percent, 100)}%`;
             } else {
                 usedEl.textContent = `${usedGB} GB (Безлимит)`;
                 remainingEl.textContent = '∞';
@@ -337,13 +352,14 @@
             }
         }
 
-        // ========== ЗАПУСК ==========
-        async function start(login) {
+        // ========== ЗАГРУЗКА ВСЕХ ДАННЫХ ==========
+        async function loadData(login) {
             document.getElementById('loading').classList.remove('hidden');
             document.getElementById('emailForm').classList.add('hidden');
+            document.getElementById('widget').classList.add('hidden');
             
-            const data = await checkKey(login);
-            displayData(data);
+            const data = await fetchKeyInfo(login);
+            updateUI(data);
             
             document.getElementById('loading').classList.add('hidden');
             document.getElementById('widget').classList.remove('hidden');
@@ -358,17 +374,17 @@
             return localStorage.getItem('vaultkey_login');
         }
 
-        // ========== УПРАВЛЕНИЕ VPN ==========
-        function executeVpn(action) {
+        // ========== VPN КОМАНДЫ ==========
+        function executeVpnCommand(action) {
             const util = UTILS[currentUtil];
             const url = action === 'on' ? util.urlOn : util.urlOff;
             window.location.href = url;
             setTimeout(() => {
-                alert('Не удалось открыть ' + util.name + '. Проверьте, что приложение установлено.');
+                alert(`Не удалось открыть ${util.name}. Убедитесь, что приложение установлено.`);
             }, 500);
         }
 
-        // ========== СОХРАНЕНИЕ УТИЛИТЫ ==========
+        // ========== УТИЛИТЫ ==========
         function saveUtil(util) {
             localStorage.setItem('vaultkey_util', util);
             currentUtil = util;
@@ -389,46 +405,51 @@
 
         // ========== ИНИЦИАЛИЗАЦИЯ ==========
         function init() {
-            // Обработчики формы
+            // Загрузка сохранённой утилиты
+            currentUtil = getSavedUtil();
+            document.querySelectorAll('.util-btn').forEach(btn => {
+                if (btn.dataset.util === currentUtil) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            // Подсказка
+            document.getElementById('utilHelp').innerHTML = `⚠️ Для работы с ${UTILS[currentUtil].name} он должен быть установлен. <a href="${UTILS[currentUtil].downloadUrl}" target="_blank" style="color:#0066CC;">Скачать</a>`;
+
+            // Обработчики
             document.getElementById('saveBtn').onclick = () => {
                 const login = document.getElementById('loginInput').value.trim();
                 if (login) {
                     saveLogin(login);
-                    start(login);
+                    loadData(login);
                 } else {
                     alert('Введите логин');
                 }
             };
 
-            // Смена логина
             document.getElementById('resetBtn').onclick = () => {
                 localStorage.removeItem('vaultkey_login');
                 location.reload();
             };
 
-            // Кнопки VPN
-            document.getElementById('vpnOnBtn').onclick = () => executeVpn('on');
-            document.getElementById('vpnOffBtn').onclick = () => executeVpn('off');
+            document.getElementById('vpnOnBtn').onclick = () => executeVpnCommand('on');
+            document.getElementById('vpnOffBtn').onclick = () => executeVpnCommand('off');
 
-            // Выбор утилиты
             document.querySelectorAll('.util-btn').forEach(btn => {
                 btn.onclick = () => saveUtil(btn.dataset.util);
             });
 
-            // Подсказка
-            document.getElementById('utilHelp').innerHTML = '⚠️ Утилита должна быть установлена. <a href="' + UTILS[currentUtil].downloadUrl + '" target="_blank" style="color:#0066CC;">Скачать</a>';
-
-            // Загрузка сохранённого логина
+            // Проверяем, есть ли сохранённый логин
             const savedLogin = getSavedLogin();
             if (savedLogin) {
-                start(savedLogin);
+                loadData(savedLogin);
+            } else {
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('emailForm').classList.remove('hidden');
             }
         }
 
-        // Загружаем сохранённую утилиту
-        currentUtil = getSavedUtil();
-        
-        // Запускаем
+        // Запуск
         init();
     </script>
 </body>
