@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Test API</title>
+</head>
+<body>
+    <h2>VaultKeyVPN Test</h2>
+    <input type="text" id="login" value="SotnikovIPHONE">
+    <button onclick="test()">Test</button>
+    <pre id="result"></pre>
+
+    <script>
+        async function test() {
+            const login = document.getElementById('login').value;
+            const url = 'http://144.31.227.188:8888/vaultkey-api.php?login=' + encodeURIComponent(login);
+            document.getElementById('result').innerHTML = 'Запрос к: ' + url + '\n\n';
+            
+            try {
+                const response = await fetch(url);
+                const text = await response.text();
+                document.getElementById('result').innerHTML += 'Ответ: ' + text;
+            } catch (err) {
+                document.getElementById('result').innerHTML += 'Ошибка: ' + err.message;
+            }
+        }
+    </script>
+</body>
+</html>
